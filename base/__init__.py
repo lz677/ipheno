@@ -10,6 +10,6 @@
 """
 __VERSION__ = '0.0.1'
 
-from .hardware import Hardware, HardwareStates
+from .hard import HardwareStates, Hardware
 from .utility import load_data, save_data
 from .results import Results

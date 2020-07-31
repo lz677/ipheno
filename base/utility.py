@@ -14,8 +14,7 @@ Code is far away from bugs with the god animal protecting
 import pickle
 import json
 import os
-import logging
-from base import hardware
+from base import hard
 
 
 def save_data(filename: str, data):
@@ -62,7 +61,7 @@ def is_img(name: str) -> bool:
     return name.lower().endswith(('.bmp', '.png', '.jpg', '.jpeg', '.pbm'))
 
 
-def save_info_to_json(hardware_instance: hardware.Hardware, path: str) -> bool:
+def save_info_to_json(hardware_instance, path: str) -> bool:
     main_control_info = {
         'all_status': hardware_instance.get_all_states(),
         'system_info': hardware_instance.get_system_info(),
@@ -77,7 +76,7 @@ def save_info_to_json(hardware_instance: hardware.Hardware, path: str) -> bool:
         return False
 
 
-def read_info_from_json(hardware_instance: hardware.Hardware, path: str = './config/main_control.json') -> bool:
+def read_info_from_json(hardware_instance, path: str = './config/main_control.json') -> bool:
     try:
         with open(path, 'r') as j_f:
             main_control_info = json.load(j_f)

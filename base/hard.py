@@ -5,7 +5,7 @@
 @version: Python3.7
 @author: Zhiyu YANG, Liu Zhe
 @e-mail: zhiyu_yang@sjtu.edu.cn, LiuZhe_54677@sjtu.edu.cn
-@file: hardware.py
+@file: hard.py
 @time: 2020/5/5 14:49
 
 Code is far away from bugs with the god animal protecting

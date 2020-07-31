@@ -10,6 +10,7 @@
 """
 import serial
 import time
+from hardware import gl
 
 
 class Uart(object):
@@ -51,6 +52,7 @@ class Uart(object):
         ser.flushInput()
         count_timeout = 1
         while True:
+            # TODO：此处用时间优化
             # TODO：出现问题 丢包接受不到信息，那么无返回数据，则接受处于死循环中。 初步用计数器解决
             # 获得接收缓冲区字符
             count_timeout += 1
@@ -64,6 +66,35 @@ class Uart(object):
                     # time.sleep(0.1)
                     ser.flushInput()
                     count_timeout = 1
+            count = ser.inWaiting()
+            if count:
+                # 读取内容
+                recv = ser.read(count)
+                # 清空接受缓存区
+                ser.flushInput()
+                ser.close()
+                # 返回读取内容
+                return recv
+            time.sleep(0.01)
+        ser.close()
+        return b'Do not receive any data'
+
+    def send_and_receive_2(self, message: bytes, timeout: float = 1.0, one_time: bool = True) -> bytes:
+        ser = serial.Serial(self.device_tty, self.bps, timeout=timeout)
+        if not ser.isOpen:
+            ser.open()
+        ser.write(message)  # 发送数据
+        # time.sleep(0.1)
+        ser.flushInput()
+        start_time = time.time()
+        # print(start_time)
+        while not gl['gl_weight_stop']:
+            if time.time() - start_time > 3:
+                print('超时，', time.time() - start_time)
+                break
+            # TODO：此处用时间优化
+            # TODO：出现问题 丢包接受不到信息，那么无返回数据，则接受处于死循环中。 初步用计数器解决
+            # 获得接收缓冲区字符
             count = ser.inWaiting()
             if count:
                 # 读取内容

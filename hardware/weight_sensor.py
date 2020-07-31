@@ -11,7 +11,8 @@
 import time
 from hardware import Uart
 import numpy as np
-from app_task import gl_weight_stop
+# gl_weight_stop = False
+from hardware import gl
 
 """
 主控板：5V 300mA
@@ -65,7 +66,7 @@ class WeightSensor(object):
         :return: 单次称重 重量
         """
         # 接受的流 存下来
-        self.receive = self.uart.send_and_receive(b'D', timeout=timeout, one_time=False)
+        self.receive = self.uart.send_and_receive_2(b'D', timeout=timeout, one_time=True)
         # TODO：注释print()
         # print('recv: ', self.receive)
         # 将流转化为字符串 格式类似b'+      0.18 g \r\n'
@@ -92,7 +93,7 @@ class WeightSensor(object):
         清零或去皮
         :rtype: 是否清零成功
         """
-        zero_weight_message = self.uart.send_and_receive(b'Z', timeout=timeout)
+        zero_weight_message = self.uart.send_and_receive_2(b'Z', timeout=timeout)
         # 查看收到数据
         # print('recv: ', zero_weight_message)
         if 'Zero Done' in str(zero_weight_message):
@@ -102,15 +103,18 @@ class WeightSensor(object):
     def get_weight(self, measure_times: int = 5):
         times = 0
         weights_list = np.zeros(measure_times)
-        print('测量%d次，当前测量次数为：' % measure_times, end=' ')
-        while times < measure_times and not gl_weight_stop:
+
+        while times < measure_times and not gl['gl_weight_stop']:
+            print('测量%d次，当前测量次数为：%d' % (measure_times, times))
             weight = self.get_one_weight()
             if weight != -666.666:
                 print(times + 1, end=' ')
                 weights_list[times] = weight
-                times += 1
+            times += 1
             time.sleep(0.1)
         self.weight = weights_list.mean()
+        if gl['gl_weight_stop']:
+            return -1, -1
         return weights_list.mean(), weights_list.std()
 
     def test(self, w_sen):

@@ -13,20 +13,18 @@ import time
 import cv2 as cv
 
 # 开发库 # 注意导入顺序的影响
-from base import Hardware, HardwareStates, utility
+from base import HardwareStates, Hardware, utility
 from base import Results
 from hardware import WORK_ON_RPI
-from typing import List, Tuple, NewType
-from app_conf import ActionBase, logger, States, Task
+from typing import NewType
+from .app_conf import ActionBase, logger, States, Task
+from hardware import gl
 
 ActionNameType = NewType('ActionNameType', str)
 TaskNameType = NewType('TaskNameType', str)
 # 树莓派跑 or 自机测试
 if WORK_ON_RPI:
     from hardware import MotorAction, WeightSensor, Light, Fan, Printer
-
-    gl_motor_stop: bool = False
-    gl_weight_stop: bool = False
 
 # TODO: 完成后删除测试库
 import random
@@ -35,8 +33,10 @@ import random
 hardware_info = Hardware()
 results_info = Results()
 if WORK_ON_RPI:
-    drawer_hard = MotorAction('托盘', [31, 33, 35, 37], [12, 16, 18, 22], 8000)
-    lifting_hard = MotorAction('抬升', [32, 36, 38, 40], [13, 15, 7, 11], 3200)
+    # drawer_hard = MotorAction('托盘', [31, 33, 35, 37], [12, 16, 18, 22], 8000)
+    # lifting_hard = MotorAction('抬升', [32, 36, 38, 40], [13, 15, 7, 11], 3200)
+    drawer_hard = MotorAction('托盘', [32, 36, 38, 40], [7, 11, 7, 11], 400)
+    lifting_hard = MotorAction('抬升', [31, 33, 35, 37], [7, 11, 7, 11], 400)
     weight_hard = WeightSensor('/dev/ttyAMA0')
     light_hard = Light(29)
     light_plate_hard = Light(23)
@@ -126,7 +126,7 @@ def app_web_test(action):
                     logger.error('--- 动作"%s"被中止，由于端口不合法' % action.name)
             hardware_info.system_info["staticIP"]["ip"] = ip
             hardware_info.system_info["staticIP"]["port"] = port
-            utility.save_info_to_json(hardware_info, './doc/conf/main_control.json')
+            utility.save_info_to_json(hardware_info, '../doc/conf/main_control.json')
 
         action.states_resp.set_states(States.COMPLETE)
         logger.info('--- 动作"%s"完成' % action.name)
@@ -140,12 +140,13 @@ def app_web_test(action):
 # 托盘复位
 def plate_reset(action):
     if WORK_ON_RPI:
+        gl['gl_motor_stop'] = False
         if drawer_hard.goto_position(True, 10):
             hardware_info.all_states[HardwareStates.plate_out] = False
             if lifting_hard.goto_position(True, 10):
                 hardware_info.all_states[HardwareStates.plate_down] = False
         else:
-            action.states_resp.set_states(States.ERROR, _error_desc='托盘不能正常收回到最里侧')
+            action.states_resp.set_states(States.TERMINATE, _error_desc='托盘不能正常收回到最里侧')
             logger.error('--- 动作"%s"被中止，由于托盘不能正常收回到最里侧' % action.name)
     else:
         if random.randint(1, 20) < 15:
@@ -159,18 +160,16 @@ def plate_reset(action):
             logger.error('--- 动作"%s"被中止，由于托盘不能正常收回到最里侧' % action.name)
 
 
-# 进料的出入
+# 进料的出入 上下
 class PlateAction(ActionBase):
     def terminate(self):
         with self.lock:
-            global gl_motor_stop
-            gl_motor_stop = True
+            gl['gl_motor_stop'] = True
             self.will_terminate = True
 
     def run(self, task_name) -> bool:
         logger.info('--- 检查动作"%s"状态...' % self.name)
         time.sleep(0.1)
-
         for i in range(2):
             if self.check_will_terminate():
                 self.states_resp.set_states(States.TERMINATE, _error_desc='被中止')
@@ -180,8 +179,7 @@ class PlateAction(ActionBase):
                 return False
             time.sleep(0.1)
         if WORK_ON_RPI:
-            global gl_motor_stop
-            gl_motor_stop = False
+            gl['gl_motor_stop'] = False
             # 电机在最高位置 然后满足两端条件
             if self.name in (ActionName.PLATE_IN, ActionName.PLATE_OUT) and lifting_hard.goto_position(True, 10) and \
                     drawer_hard.goto_position(self.name == ActionName.PLATE_IN, 10):
@@ -198,7 +196,7 @@ class PlateAction(ActionBase):
                 return True
             else:
                 # 如果有异常 宕掉电机 终止动作 反馈错误 并向前端提交具体错误信息供自修复
-                gl_motor_stop = True
+                gl['gl_motor_stop'] = True
                 self.states_resp.states = States.TERMINATE
                 self.states_resp.set_states(States.TERMINATE, _error_desc=('<%s>未到位置，请核查后再次启动' % self.name))
                 logger.warning('--- 动作"%s"未完成，错误原因：%s' % (self.name, self.states_resp.get_dict()['errorDesc']))
@@ -212,8 +210,7 @@ class WeightAction(ActionBase):
 
     def terminate(self):
         with self.lock:
-            global gl_weight_stop
-            gl_weight_stop = True
+            gl['gl_weight_stop'] = True
             self.will_terminate = True
 
     def run(self, task_name) -> bool:
@@ -229,8 +226,7 @@ class WeightAction(ActionBase):
                 return False
             time.sleep(0.1)
         if WORK_ON_RPI:
-            global gl_weight_stop
-            gl_weight_stop = False
+            gl['gl_weight_stop'] = False
             if task_name == TaskName.WEIGHT:
                 # 称重
                 weight_mean, weight_std = weight_hard.get_weight(3)
@@ -244,10 +240,12 @@ class WeightAction(ActionBase):
                     logger.info('称重清零完成,清零后的结果:' + str(hardware_info.all_states[HardwareStates.balance]))
                 else:
                     # 如果有异常返回 异常
-                    gl_weight_stop = True
+                    gl['gl_weight_stop'] = True
                     self.states_resp.states = States.TERMINATE
-                    self.states_resp.set_states(States.TERMINATE, _error_desc=('清零出现异常，请尝试再次启动' % self.name))
+                    self.states_resp.set_states(States.TERMINATE, _error_desc='清零出现异常，请尝试再次启动')
                     logger.warning('--- 动作"%s"未完成，错误原因：%s' % (self.name, self.states_resp.get_dict()['errorDesc']))
+                    plate_reset(self)
+                    return False
             # 状态变为完成
             self.states_resp.set_states(States.COMPLETE)
             logger.info('--- 动作"%s"完成' % self.name)
@@ -332,7 +330,8 @@ class SetIPAndPortAction(ActionBase):
                     logger.error('--- 动作"%s"被中止，由于端口不合法' % self.name)
             hardware_info.system_info["staticIP"]["ip"] = ip
             hardware_info.system_info["staticIP"]["port"] = port
-            utility.save_info_to_json(hardware_info, './doc/conf/main_control.json')
+            logger.info('---- 正在设置ip和端口')
+            utility.save_info_to_json(hardware_info, '../doc/conf/main_control.json')
             utility.network_setup(ip, '255.255.255.0', '192.168.0.255')
             time.sleep(1)
             # 状态变为完成
@@ -405,7 +404,7 @@ class TaskManager:
     light_on_action = LightAction(_name=ActionName.LIGHT_ON)
     light_off_action = LightAction(_name=ActionName.LIGHT_OFF)
     fan_action = FanAction(_name=ActionName.FAN)
-    ip_port_action = FanAction(_name=ActionName.SET_IP_PORT)
+    ip_port_action = SetIPAndPortAction(_name=ActionName.SET_IP_PORT)
     printer_restart_action = PrinterAction(_name=ActionName.PRINTER_RESTART)
     printer_state_action = PrinterAction(_name=ActionName.UPDATE_PRINTER_STATE)
     printer_print_action = PrinterAction(_name=ActionName.PRINTER_PRINT)

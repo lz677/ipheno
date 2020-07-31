@@ -8,7 +8,7 @@
 @time: 2020/7/24 10:06
 @desc: LESS IS MORE
 """
-from base import uart
+from hardware import uart
 
 """
 200dpi: 1 mm = 8 dot

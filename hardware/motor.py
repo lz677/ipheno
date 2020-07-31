@@ -11,8 +11,8 @@
 import time
 import typing
 # from trans_try import cancel
-from app_task import gl_motor_stop
-
+# from app_config.app_task import gl_motor_stop
+from hardware import gl
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError:
@@ -186,7 +186,7 @@ class MotorAction(object):
         self.motor.set_duty(duty)
         begin_time = time.time()
         while True:
-            if gl_motor_stop:
+            if gl['gl_motor_stop']:
                 break
             elif self.begin_switch.get_switch_status() and is_goto_begin:
                 break
@@ -320,7 +320,8 @@ def test_step2():
 
 if __name__ == '__main__':
     try:
+        pass
         # test_step2()
-        print(cancel)
+        # print(cancel)
     except KeyboardInterrupt:
         print("程序中断")

@@ -9,15 +9,15 @@
 @desc: LESS IS MORE
 """
 # 三方库
-from flask import Flask, render_template, Response, request, send_file, redirect
+from flask import Flask, Response, request
 from flask.json import jsonify
 import time
 import os
 import sys
 # 开发库
 from base import HardwareStates, utility
-from app_conf import logger
-from app_task import TaskManager, hardware_info, results_info
+from app_config.app_conf import logger
+from app_config.app_task import TaskManager, hardware_info, results_info
 
 # flask 标识
 app = Flask(__name__)
@@ -33,10 +33,20 @@ def error404(args):
 def task(task_name: str):
     logger.info('收到任务<%s>执行请求' % task_name)
     if 'fan' in task_name:
-        hardware_info.all_states[HardwareStates.fan] = int(request.args.get('duty'))
+        try:
+            hardware_info.all_states[HardwareStates.fan] = int(request.args.get('duty'))
+            logger.debug('---- 风扇开度设置为：%d' % hardware_info.all_states[HardwareStates.fan])
+        except TypeError:
+            hardware_info.all_states[HardwareStates.fan] = 10
+            logger.warning('未设置风扇开度(duty) 将其默认开启最低值10')
     if 'set-ip' in task_name:
-        hardware_info.system_info['temIP']['ip'] = request.args.get("ip")
-        hardware_info.system_info['temIP']['port'] = request.args.get("port")
+        try:
+            hardware_info.system_info['temIP']['ip'] = request.args.get("ip")
+            hardware_info.system_info['temIP']['port'] = request.args.get("port")
+        except KeyError:
+            logger.warning('未设置ip和端口，将其默认为初始值')
+            hardware_info.system_info['temIP']['ip'] = '192.168.1.7'
+            hardware_info.system_info['temIP']['port'] = '5000'
     # time.sleep(1)
     return TaskManager.tasks[task_name].start().get_json()
 

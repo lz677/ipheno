@@ -4,7 +4,7 @@
 @author: Zhiyu YANG, Liu Zhe
 @license: (C) Copyright SJTU ME
 @contact: zhiyu_yang@sjtu.edu.cn, LiuZhe_54677@sjtu.edu.cn
-@file: app_conf.py
+@file: app_config.py
 @time: 2020/7/28 19:47
 @desc: LESS IS MORE
 """
@@ -12,12 +12,11 @@
 from __future__ import annotations
 from flask.json import jsonify
 from threading import Lock, Thread, Event
-from typing import List, Tuple, NewType
+from typing import List, NewType
 
 import time
 import abc
 import os
-import sys
 import logging.config
 import logging
 
@@ -25,10 +24,10 @@ import logging
 from hardware import WORK_ON_RPI
 
 if WORK_ON_RPI:
-    from app_task import gl_motor_stop
+    pass
 
 # 日志配置
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'doc\\conf\\logging.conf')
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../doc/conf/logging.conf')
 logging.config.fileConfig(path)
 logger = logging.getLogger('iphenoDebug')
 
