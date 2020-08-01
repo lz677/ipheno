@@ -8,3 +8,4 @@
 @time: 2020/7/28 11:32
 @desc: LESS IS MORE
 """
+from app_config.app_conf import logger

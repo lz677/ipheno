@@ -2,7 +2,7 @@
 #   Copyright (C) 2020 * Ltd. All rights reserved.
 #
 #   Project     : count
-#   File name   : test.py
+#   File name   : count_test.py
 #   Author      : Fan Shengzhe
 #   Created date: 2020/7/26 18:02
 #   Editor      : PyCharm 2019.1
@@ -16,6 +16,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from .. import logger
 
 start = time.time()
 # read image
@@ -28,8 +29,7 @@ input_batch = splice_splice.split(input_img)
 output_batch = dlcount.segment(input_batch)
 output_img = splice_splice.splice(output_batch)
 result, num = dlcount.merge_count(input_img, output_img[..., -1])
-print(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
+logger(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
 # visualization
-plt.imshow(result)
-# plt.show()
-print(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
+result = cv2.imencode('.png', result)
+cv2.imwrite('../results/count.png', result)

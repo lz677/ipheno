@@ -16,7 +16,7 @@ except RuntimeError:
 
 
 class Fan(object):
-    def __init__(self, pin: int = 19):
+    def __init__(self, pin: int = 29):
         # 默认pwn 引脚为19
         self.pin = pin
         self.mode = GPIO.BOARD

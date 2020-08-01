@@ -13,6 +13,8 @@ import typing
 # from trans_try import cancel
 # from app_config.app_task import gl_motor_stop
 from hardware import gl
+import logging
+
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError:
@@ -168,6 +170,9 @@ class TravelSwitch(object):
         :return: True-> 行程开关触发
                  False->行程开关未触发
         """
+        logging.debug('no:' + str(GPIO.input(self.pins_NO)))
+        logging.debug('nc:' + str(GPIO.input(self.pin_NC)))
+        logging.debug('zong' + str(GPIO.input(self.pins_NO) and not GPIO.input(self.pin_NC)))
         return GPIO.input(self.pins_NO) and not GPIO.input(self.pin_NC)
 
 
@@ -183,18 +188,24 @@ class MotorAction(object):
         self.motor.set_able_status(True)
         self.motor.set_direction(is_goto_begin)
         # self.motor.set_pwm_frequency(frequency)
-        self.motor.set_duty(duty)
         begin_time = time.time()
-        while True:
-            if gl['gl_motor_stop']:
-                break
-            elif self.begin_switch.get_switch_status() and is_goto_begin:
-                break
-            elif self.end_switch.get_switch_status() and not is_goto_begin:
-                break
-            elif time.time() - begin_time > 20:
-                break
-            time.sleep(0.01)
+        if (is_goto_begin and not self.begin_switch.get_switch_status()) or (
+                not is_goto_begin and not self.end_switch.get_switch_status()):
+            self.motor.set_duty(duty)
+            while True:
+                if gl['gl_motor_stop']:
+                    logging.debug('gl_motor_stop')
+                    break
+                elif self.begin_switch.get_switch_status() and is_goto_begin:
+                    logging.debug('self.begin_switch.get_switch_status()')
+                    break
+                elif self.end_switch.get_switch_status() and not is_goto_begin:
+                    logging.debug('end_switch.get_switch_status()')
+                    break
+                elif time.time() - begin_time > 40:
+                    logging.debug('time40')
+                    break
+                time.sleep(0.001)
         self.motor.set_able_status(False)
         self.motor.pwm.ChangeDutyCycle(0)
         if self.begin_switch.get_switch_status() or self.end_switch.get_switch_status():

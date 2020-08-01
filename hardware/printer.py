@@ -9,6 +9,7 @@
 @desc: LESS IS MORE
 """
 from hardware import uart
+import time
 
 """
 200dpi: 1 mm = 8 dot
@@ -30,6 +31,7 @@ class Printer(object):
                               '粒长宽比平均值': '2'
                               }
         self.panicle_para_ch = {'品种号': 'NONE',
+                                '时间': 'NONE',
                                 '穗长': 'NONE',
                                 '实粒数': 'NONE',
                                 '瘪粒数': 'NONE',
@@ -81,9 +83,10 @@ class Printer(object):
     def printer_restart(self):
         self.uart.send_and_receive(b'\x1b\x21\x52')
         status: bytes = self.uart.send_and_receive(b'\x1b\x21\x3f', one_time=False)
-        print("打印机返回数据", status)
+        time.sleep(2)
+        # print("打印机返回数据", status)
 
-        print(int.from_bytes(status, 'little'))
+        # print(int.from_bytes(status, 'little'))
 
     # 询问打印机状态
     def printer_states(self):

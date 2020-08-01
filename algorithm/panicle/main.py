@@ -1,11 +1,11 @@
 import cv2 as cv
-import Panicle
+import panicle_al
 import time
 
 if __name__ == '__main__':
     start = time.time()
-    initial = cv.imread(r"./source/22.jpg")
-    result, thin_IMG, prim_IMG, first_IMG = Panicle.process(initial)
+    initial = cv.imread(r"../source/panicle.jpg")
+    result, thin_IMG, prim_IMG, first_IMG = panicle_al.process(initial)
     end = time.time()
     print("CostTime:", end - start)
     # print("CostTime2:", end2 - start2)

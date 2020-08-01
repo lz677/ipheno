@@ -89,7 +89,7 @@ class Uart(object):
         start_time = time.time()
         # print(start_time)
         while not gl['gl_weight_stop']:
-            if time.time() - start_time > 3:
+            if time.time() - start_time > 2:
                 print('超时，', time.time() - start_time)
                 break
             # TODO：此处用时间优化

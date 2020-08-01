@@ -47,6 +47,7 @@ class Light(object):
     def initialization(self):
         GPIO.setmode(self.mode)
         GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(19, GPIO.OUT, initial=True)
         # 默认关灯
         GPIO.output(self.pin, False)
 

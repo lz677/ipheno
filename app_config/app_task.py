@@ -11,7 +11,8 @@
 # 官方库
 import time
 import cv2 as cv
-
+import os
+import sys
 # 开发库 # 注意导入顺序的影响
 from base import HardwareStates, Hardware, utility
 from base import Results
@@ -35,13 +36,19 @@ results_info = Results()
 if WORK_ON_RPI:
     # drawer_hard = MotorAction('托盘', [31, 33, 35, 37], [12, 16, 18, 22], 8000)
     # lifting_hard = MotorAction('抬升', [32, 36, 38, 40], [13, 15, 7, 11], 3200)
-    drawer_hard = MotorAction('托盘', [32, 36, 38, 40], [7, 11, 7, 11], 400)
-    lifting_hard = MotorAction('抬升', [31, 33, 35, 37], [7, 11, 7, 11], 400)
+    drawer_hard = MotorAction('托盘', [31, 33, 35, 37], [12, 16, 18, 22], 800)
+    time.sleep(0.01)
+    lifting_hard = MotorAction('抬升', [32, 36, 38, 40], [13, 15, 7, 11], 800)
+    # drawer_hard = MotorAction('托盘', [32, 36, 38, 40], [7, 11, 7, 11], 400)
+    # lifting_hard = MotorAction('抬升', [31, 33, 35, 37], [7, 11, 7, 11], 400)
     weight_hard = WeightSensor('/dev/ttyAMA0')
-    light_hard = Light(29)
+    time.sleep(0.01)
+    light_hard = Light(21)
+    time.sleep(0.01)
     light_plate_hard = Light(23)
-    fan_hard = Fan(19)
-    printer_hard = Printer("COM7")
+    time.sleep(0.01)
+    fan_hard = Fan(29)
+    # printer_hard = Printer("/dev/ttyACM")
 
 
 class ActionName:
@@ -181,19 +188,28 @@ class PlateAction(ActionBase):
         if WORK_ON_RPI:
             gl['gl_motor_stop'] = False
             # 电机在最高位置 然后满足两端条件
-            if self.name in (ActionName.PLATE_IN, ActionName.PLATE_OUT) and lifting_hard.goto_position(True, 10) and \
-                    drawer_hard.goto_position(self.name == ActionName.PLATE_IN, 10):
-                # 修改信息及动作状态
-                hardware_info.all_states[HardwareStates.plate_out] = (self.name == ActionName.PLATE_OUT)
-                self.states_resp.set_states(States.COMPLETE)
-                logger.info('--- 动作"%s"完成' % self.name)
-                return True
-            elif self.name in (ActionName.PLATE_UP, ActionName.PLATE_DOWN) and drawer_hard.goto_position(True, 10) and \
-                    lifting_hard.goto_position(self.name == ActionName.PLATE_UP, 10):
-                hardware_info.all_states[HardwareStates.plate_down] = (self.name == ActionName.PLATE_DOWN)
-                self.states_resp.set_states(States.COMPLETE)
-                logger.info('--- 动作"%s"完成' % self.name)
-                return True
+            if self.name in (ActionName.PLATE_IN, ActionName.PLATE_OUT):
+                lifting_hard.goto_position(True, 10)
+                if lifting_hard.goto_position(True, 10):
+                    logger.debug('lz: 抬升完毕')
+                    # time.sleep(5)
+                drawer_hard.goto_position(self.name == ActionName.PLATE_IN, 10)
+                logger.debug('lz: 托盘执行完毕')
+                if drawer_hard.goto_position(self.name == ActionName.PLATE_IN, 10):
+                    # 修改信息及动作状态
+                    hardware_info.all_states[HardwareStates.plate_out] = (self.name == ActionName.PLATE_OUT)
+                    self.states_resp.set_states(States.COMPLETE)
+                    logger.info('--- 动作"%s"完成' % self.name)
+                    return True
+            elif self.name in (ActionName.PLATE_UP, ActionName.PLATE_DOWN):
+                drawer_hard.goto_position(True, 10)
+                if drawer_hard.goto_position(True, 10):
+                    lifting_hard.goto_position(self.name == ActionName.PLATE_UP, 10)
+                    if lifting_hard.goto_position(self.name == ActionName.PLATE_UP, 10):
+                        hardware_info.all_states[HardwareStates.plate_down] = (self.name == ActionName.PLATE_DOWN)
+                        self.states_resp.set_states(States.COMPLETE)
+                        logger.info('--- 动作"%s"完成' % self.name)
+                        return True
             else:
                 # 如果有异常 宕掉电机 终止动作 反馈错误 并向前端提交具体错误信息供自修复
                 gl['gl_motor_stop'] = True
@@ -342,30 +358,31 @@ class SetIPAndPortAction(ActionBase):
         return False
 
 
-# 打印机
-class PrinterAction(ActionBase):
-    def run(self, task_name):
-        if WORK_ON_RPI:
-            if task_name == TaskName.UPDATE_PRINTER_STATE:
-                # TODO：修改打印机返回值 返回信息设置为错误信息
-                if not printer_hard.printer_states():
-                    self.states_resp.states = States.TERMINATE
-                    self.states_resp.set_states(States.TERMINATE, _error_desc='打印机处于错误状态，请排除错误后再次测试')
-                    logger.error('打印机处于错误状态，请排除错误后再次测试')
-            elif task_name == TaskName.PRINTER_RESTART:
-                printer_hard.printer_restart()
-                logger.info('打印机重启')
-            elif task_name == TaskName.PRINTER_PRINT:
-                print_mes = {"品种号": '五优稻2号', '时间': str(time.time())}
-                for para, result in enumerate(results_info.img_parameters):
-                    if result != 'NONE':
-                        print_mes.update({para: result})
-                printer_hard.printer_print(print_mes, False)
-            # 状态变为完成
-            self.states_resp.set_states(States.COMPLETE)
-            logger.info('--- 动作"%s"完成' % self.name)
-        else:
-            app_web_test(self)
+# # 打印机
+# class PrinterAction(ActionBase):
+#     def run(self, task_name):
+#         if WORK_ON_RPI:
+#             if task_name == TaskName.UPDATE_PRINTER_STATE:
+#                 # TODO：修改打印机返回值 返回信息设置为错误信息
+#                 if not printer_hard.printer_states():
+#                     self.states_resp.states = States.TERMINATE
+#                     self.states_resp.set_states(States.TERMINATE, _error_desc='打印机处于错误状态，请排除错误后再次测试')
+#                     logger.error('打印机处于错误状态，请排除错误后再次测试')
+#             elif task_name == TaskName.PRINTER_RESTART:
+#                 printer_hard.printer_restart()
+#                 logger.info('打印机重启')
+#             elif task_name == TaskName.PRINTER_PRINT:
+#                 print_mes = {"品种号": '五优稻2号', '时间': str(time.time())}
+#                 print_mes.update({'重量': hardware_info.system_info[HardwareStates.balance]})
+#                 for para, result in enumerate(results_info.img_parameters):
+#                     if result != 'NONE':
+#                         print_mes.update({para: result})
+#                 printer_hard.printer_print(print_mes, False)
+#             # 状态变为完成
+#             self.states_resp.set_states(States.COMPLETE)
+#             logger.info('--- 动作"%s"完成' % self.name)
+#         else:
+#             app_web_test(self)
 
 
 # 拍照
@@ -391,8 +408,31 @@ class GetImgAction(ActionBase):
 
 # 调用count 算法
 class CountAction(ActionBase):
+    def terminate(self):
+        with self.lock:
+            if utility.check_if_process_running('count_test.py'):
+                logger.warning('--- 穗上谷粒计数进程将被外界终止')
+                # TODO：杀死进程
+                os.system('sudo kill')
+            self.will_terminate = True
+
     def run(self, task_name):
-        pass
+        # 检查是否有进程在隐形
+        if utility.check_if_process_running('count_test.py'):
+            # 保障
+            self.states_resp.states = States.TERMINATE
+            self.states_resp.set_states(States.TERMINATE, _error_desc='穗上谷粒计数仍然在运行')
+
+        else:
+            # 运行 谷粒计数
+            try:
+                os.system('python3 /home/pi/Documents/ipheno/algorithm/count/count_test.py')
+            except:
+                self.states_resp.states = States.ERROR
+                self.states_resp.set_states(States.ERROR, _error_desc='穗上谷粒计数算法为找到，请重启总控')
+                logger.error('未找到该文件')
+            self.states_resp.states = States.RUNNING
+            self.states_resp.set_states(States.RUNNING)
 
 
 class TaskManager:
@@ -405,20 +445,31 @@ class TaskManager:
     light_off_action = LightAction(_name=ActionName.LIGHT_OFF)
     fan_action = FanAction(_name=ActionName.FAN)
     ip_port_action = SetIPAndPortAction(_name=ActionName.SET_IP_PORT)
-    printer_restart_action = PrinterAction(_name=ActionName.PRINTER_RESTART)
-    printer_state_action = PrinterAction(_name=ActionName.UPDATE_PRINTER_STATE)
-    printer_print_action = PrinterAction(_name=ActionName.PRINTER_PRINT)
+    # printer_restart_action = PrinterAction(_name=ActionName.PRINTER_RESTART)
+    # printer_state_action = PrinterAction(_name=ActionName.UPDATE_PRINTER_STATE)
+    # printer_print_action = PrinterAction(_name=ActionName.PRINTER_PRINT)
     get_img_action = GetImgAction(_name=ActionName.GET_IMG)
 
     tasks = {
 
+        # TaskName.WEIGHT: Task(_name='称重',
+        #                       _task=TaskName.WEIGHT,
+        #                       _actions=[
+        #                           plate_in_action,
+        #                           plate_down_action,
+        #                           weight_action,
+        #                           plate_up_action,
+        #                       ]),
         TaskName.WEIGHT: Task(_name='称重',
                               _task=TaskName.WEIGHT,
                               _actions=[
-                                  plate_in_action,
-                                  plate_down_action,
-                                  weight_action,
-                                  plate_up_action,
+                                  # PlateAction(_name=ActionName.PLATE_UP),
+                                  PlateAction(_name=ActionName.PLATE_IN),
+                                  PlateAction(_name=ActionName.PLATE_OUT),
+                                  PlateAction(_name=ActionName.PLATE_IN),
+                                  PlateAction(_name=ActionName.PLATE_DOWN),
+                                  WeightAction(_name=ActionName.WEIGHT),
+                                  PlateAction(_name=ActionName.PLATE_UP),
                               ]),
         TaskName.WEIGHT_ZERO: Task(_name='称重清零【去皮】',
                                    _task=TaskName.WEIGHT_ZERO,
@@ -470,44 +521,44 @@ class TaskManager:
                                    _actions=[
                                        ip_port_action
                                    ]),
-        TaskName.UPDATE_PRINTER_STATE: Task(_name='查询打印机状态',
-                                            _task=TaskName.UPDATE_PRINTER_STATE,
-                                            _actions=[
-                                                printer_state_action
-                                            ]),
-        TaskName.PRINTER_PRINT: Task(_name='打印结果',
-                                     _task=TaskName.PRINTER_PRINT,
-                                     _actions=[
-                                         printer_print_action
-                                     ]),
-        TaskName.PRINTER_RESTART: Task(_name='重启打印机',
-                                       _task=TaskName.PRINTER_RESTART,
-                                       _actions=[
-                                           printer_restart_action
-                                       ]),
-
-        TaskName.EASY_MODE: Task(_name='自动模式',
-                                 _task=TaskName.EASY_MODE,
-                                 _actions=[
-                                     # 进料
-                                     plate_in_action,
-                                     # 开对应的灯
-                                     light_on_action,
-                                     # 拍摄图片
-                                     get_img_action,
-                                     # 关灯
-                                     light_off_action,
-                                     # 图像分析 脚本形式
-                                     # 下降
-                                     plate_down_action,
-                                     # 称重
-                                     weight_action,
-                                     # 抬升复位
-                                     plate_up_action,
-                                     # 读取算法数据 存档
-
-                                     # 等待算法结束 打印结果
-                                     printer_print_action,
-                                 ])
+        # TaskName.UPDATE_PRINTER_STATE: Task(_name='查询打印机状态',
+        #                                     _task=TaskName.UPDATE_PRINTER_STATE,
+        #                                     _actions=[
+        #                                         printer_state_action
+        #                                     ]),
+        # TaskName.PRINTER_PRINT: Task(_name='打印结果',
+        #                              _task=TaskName.PRINTER_PRINT,
+        #                              _actions=[
+        #                                  printer_print_action
+        #                              ]),
+        # TaskName.PRINTER_RESTART: Task(_name='重启打印机',
+        #                                _task=TaskName.PRINTER_RESTART,
+        #                                _actions=[
+        #                                    printer_restart_action
+        #                                ]),
+        #
+        # TaskName.EASY_MODE: Task(_name='自动模式',
+        #                          _task=TaskName.EASY_MODE,
+        #                          _actions=[
+        #                              # 进料
+        #                              plate_in_action,
+        #                              # 开对应的灯
+        #                              light_on_action,
+        #                              # 拍摄图片
+        #                              get_img_action,
+        #                              # 关灯
+        #                              light_off_action,
+        #                              # 图像分析 脚本形式
+        #                              # 下降
+        #                              plate_down_action,
+        #                              # 称重
+        #                              weight_action,
+        #                              # 抬升复位
+        #                              plate_up_action,
+        #                              # 读取算法数据 存档
+        #
+        #                              # 等待算法结束 打印结果
+        #                              # printer_print_action,
+        #                          ])
 
     }
