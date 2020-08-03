@@ -170,9 +170,9 @@ class TravelSwitch(object):
         :return: True-> 行程开关触发
                  False->行程开关未触发
         """
-        logging.debug('no:' + str(GPIO.input(self.pins_NO)))
-        logging.debug('nc:' + str(GPIO.input(self.pin_NC)))
-        logging.debug('zong' + str(GPIO.input(self.pins_NO) and not GPIO.input(self.pin_NC)))
+        # logging.debug('no:' + str(GPIO.input(self.pins_NO)))
+        # logging.debug('nc:' + str(GPIO.input(self.pin_NC)))
+        # logging.debug('zong' + str(GPIO.input(self.pins_NO) and not GPIO.input(self.pin_NC)))
         return GPIO.input(self.pins_NO) and not GPIO.input(self.pin_NC)
 
 
@@ -202,8 +202,8 @@ class MotorAction(object):
                 elif self.end_switch.get_switch_status() and not is_goto_begin:
                     logging.debug('end_switch.get_switch_status()')
                     break
-                elif time.time() - begin_time > 40:
-                    logging.debug('time40')
+                elif time.time() - begin_time > 30:
+                    logging.debug('time30')
                     break
                 time.sleep(0.001)
         self.motor.set_able_status(False)

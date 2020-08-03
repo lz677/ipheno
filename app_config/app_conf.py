@@ -177,15 +177,19 @@ class Task:
             if _action.states_resp.states in (States.ERROR, States.TERMINATE):
                 logger.error('--- 任务<%s>执行中止, 由于动作"%s"故障' % (self.name, _action.name))
                 self.states_resp.set_states(States.ERROR, _error_desc="%s 故障" % _action.name)
+                if _action.states_resp.states == States.ERROR:
+                    self.cancel()
+                elif _action.states_resp.states == States.TERMINATE:
+                    _action.terminate()
                 self.e.set()
                 return False
             if _action.states_resp.states == States.RUNNING:
-                logger.error('--- 任务<%s>执行中止, 由于动作"%s"故障' % (self.name, _action.name))
-                self.states_resp.set_states(States.ERROR, _error_desc="%s 故障" % _action.name)
+                logger.warning('--- 任务<%s>执行中, 动作"%s"仍在执行' % (self.name, _action.name))
+                self.states_resp.set_states(States.RUNNING, _error_desc="%s 正在执行" % _action.name)
                 self.e.set()
-            self.e.set()
-        time.sleep(0.1)
-        print(self.t.is_alive())
+            # self.e.set()
+        # time.sleep(0.1)
+        # print(self.t.is_alive())
         # if self.t.is_alive():
         #     self.t.join()
         logger.info('--- 任务<%s>完成' % self.name)
@@ -204,11 +208,12 @@ class Task:
     def cancel(self) -> TaskResponse:
         for _action in self.actions:
             _action.terminate()
-        print(self.t.is_alive())
+        # print(self.t.is_alive())
         self.t.join()
         for _action in self.actions:
             _action.toggle_terminate()
         self.states_resp.set_states(States.TERMINATE)
+        logger.info('--- 任务<%s>已取消' % self.name)
         # logger.info('--- 任务<%s>已取消, 开始执行重置任务' % self.name)
         # TaskManager.tasks['reset_' + self.name].start()
         return self.states_resp

@@ -13,15 +13,16 @@ try:
 except RuntimeError:
     print("Error importing RPi.GPIO!  This is probably because you need superuser privileges."
           + "You can achieve this by using 'sudo' to run your script")
+import logging
 
 
 class Fan(object):
     def __init__(self, pin: int = 29):
-        # 默认pwn 引脚为19
+        # 默认pwn 引脚为29
         self.pin = pin
         self.mode = GPIO.BOARD
         self.pwm = None
-        self.frequency = 50
+        self.frequency = 25000
         self.duty = 0
         self.duty_max = 100
         self.initialization()
@@ -56,6 +57,7 @@ class Fan(object):
 
     # 风扇开启
     def fan_open(self, duty: int = 10) -> bool:
+        logging.debug('频率为%d' % self.frequency)
         if 0 <= duty <= self.duty_max:
             self.set_duty(duty)
             self.pwm.ChangeDutyCycle(duty)

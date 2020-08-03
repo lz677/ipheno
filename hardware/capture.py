@@ -15,7 +15,7 @@ import numpy as np
 import time
 import base64
 
-
+cv2.CAP_PROP_EXPOSURE
 class CaptureWebCam:
     def __init__(self):
         super().__init__()

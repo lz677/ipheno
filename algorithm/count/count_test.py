@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 # ================================================================
 #   Copyright (C) 2020 * Ltd. All rights reserved.
 #
@@ -16,11 +17,15 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from .. import logger
+import logging
+import json
 
+logging.basicConfig(level=logging.DEBUG)
 start = time.time()
 # read image
-input_img = cv2.imread(os.path.join(dlcount.config.IMG_PATH, 'example1.jpg'))
+path = '/home/pi/Documents/ipheno/algorithm/source/count.jpg'
+# input_img = cv2.imread(os.path.join(dlcount.config.IMG_PATH, 'example1.jpg'))
+input_img = cv2.imread(path)
 input_img = input_img[..., [2, 1, 0]]  # BGR -> RGB
 
 # inference
@@ -29,7 +34,15 @@ input_batch = splice_splice.split(input_img)
 output_batch = dlcount.segment(input_batch)
 output_img = splice_splice.splice(output_batch)
 result, num = dlcount.merge_count(input_img, output_img[..., -1])
-logger(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
+logging.info(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
 # visualization
-result = cv2.imencode('.png', result)
-cv2.imwrite('../results/count.png', result)
+# result = cv2.imencode('.png', result)
+cv2.imwrite('/home/pi/Documents/ipheno/algorithm/results/count.png', result)
+
+# num 结果存为json
+result_path = '/home/pi/Documents/ipheno/algorithm/results/count_result.json'
+try:
+    with open(result_path, 'w', encoding='UTF-8') as j_f:
+        j_f.write(json.dumps({'num': num}))
+except IOError as ioerr:
+    print("文件 %s 无法创建" % result_path)

@@ -16,10 +16,9 @@
 class Results:
     def __init__(self):
         self.img_parameters = {
-            '品种号': 'NONE',
             '穗长': 'NONE',
             '一次支梗数': 'NONE',
-            '总粒数': 'NONE',
+            '总粒数': '100',
             '千粒重': 'NONE',
             '节间长度最大值': 'NONE',
             '节间长度最小值': 'NONE',
@@ -49,9 +48,9 @@ class Results:
             '粒长宽比标准差': 'NONE',
             '粒长宽比极差': 'NONE',
             '粒长宽比中位数': 'NONE',
-            '实粒数': 'NONE',
+            '实粒数': '96',
             '瘪粒数': 'NONE',
-            '结实率': 'NONE',
+            '结实率': '96%',
             '实粒质量': 'NONE',
             '颜色等级': 'NONE',
             '茎叶夹角': 'NONE',

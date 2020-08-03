@@ -130,13 +130,18 @@ def check_if_process_running(process_name):
 
 def find_process_id_by_name(process_name, only_pid=False):
     list_of_process_objects = []
+    list_pid = []
     # Iterate over all the running process
     for proc in psutil.process_iter():
         try:
             p_info = proc.as_dict(attrs=['pid', 'name', 'create_time'])
+
             # check if process name contains the given name string
             if process_name.lower() in p_info['name'].lower():
                 list_of_process_objects.append(p_info)
+                list_pid.append(p_info['pid'])
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
+    if only_pid:
+        return list_pid
     return list_of_process_objects
