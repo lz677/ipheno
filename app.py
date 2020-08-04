@@ -64,17 +64,37 @@ def task_progress(task_name: str):
 
 @app.route('/task-result/<string:task_name>')
 def task_result(task_name: str):
-    if 'weight' in task_name:
+    only_data = True
+    if task_name == 'weight':
         return jsonify({
-            task_name: hardware_info.all_states[HardwareStates.balance]
+            '称重结果': hardware_info.all_states[HardwareStates.balance]
         })
-    only_data = False
+    if task_name == 'weight-zero':
+        return jsonify({
+            '清零成功': ' '
+        })
+    if task_name == 'image':
+        img_result = {}
+        for res in results_info.img_info:
+            if results_info.img_info[res] != 'NONE':
+                img_result.update({res: results_info.img_info[res]})
+        return jsonify(img_result)
+
     if only_data:
         results = {}
-        for para, result in enumerate(results_info.img_parameters):
-            if result != 'NONE':
-                result.update({para: results})
-        results.update(results_info.get_image_info())
+        if task_name in ('weight', 'easy-mode-grain'):
+            results.update({'重量': hardware_info.all_states[HardwareStates.balance]})
+        for res in results_info.img_parameters:
+            if results_info.img_parameters[res] != 'NONE':
+                results.update({res: results_info.img_parameters[res]})
+        img_result = []
+        for res in results_info.img_info:
+            if results_info.img_info[res] != 'NONE':
+                img_result.append(res)
+                img_result.append(results_info.img_info[res])
+        results.update({'image': img_result})
+        # results.update(results_info.get_image_info())
+        logger.debug(results)
         return jsonify(results)
     # 返回结果
     cal_results = results_info.get_image_parameters()
@@ -142,6 +162,77 @@ def system(cmd: str):
 def update_project():
     logger.warning('--- 更新本地版本')
     utility.update_project('/home/pi/Documents/hh')
+
+
+# from app_config.app_task import drawer_hard, light_hard, fan_hard, lifting_hard
+
+
+# app端
+@app.route('/plate/<string:cmd>')
+def plate(cmd):
+    """
+    open or close the plate
+    :param cmd: open close
+    :return: ok failed 404 [check you url]
+    """
+    # print("plate:", cmd)
+    if cmd == "open":
+        TaskManager.tasks['plate-open'].start()
+        return jsonify({'state': "failed"}) if TaskManager.tasks['plate-open'].get_states().states == 'complete' \
+            else jsonify({'state': "ok"})
+    elif cmd == "close":
+        TaskManager.tasks['plate-close'].start()
+        return jsonify({'state': "ok"}) if TaskManager.tasks['plate-close'].get_states().states == 'complete' \
+            else jsonify({'state': "failed"})
+    else:
+        # print("检查你的url")
+        return jsonify({"error": "404 [check you url]"})
+
+
+@app.route('/light/<string:cmd>')
+def light(cmd):
+    if cmd == "open":
+        TaskManager.tasks['light-on'].start()
+        return jsonify({'state': "failed"}) if TaskManager.tasks['light-on'].get_states().states == 'complete' \
+            else jsonify({'state': "ok"})
+    elif cmd == "close":
+        TaskManager.tasks['light-off'].start()
+        return jsonify({'state': "ok"}) if TaskManager.tasks['light-off'].get_states().states == 'complete' \
+            else jsonify({'state': "failed"})
+    else:
+        # print("检查你的url")
+        return jsonify({"error": "404 [check you url]"})
+
+
+@app.route('/plate-light/<string:cmd>')
+def plate_light(cmd):
+    if cmd == "open":
+        TaskManager.tasks['plate-light-on'].start()
+        time.sleep(0.1)
+        return jsonify({'state': "failed"}) if TaskManager.tasks['plate-light-on'].get_states().states == 'complete' \
+            else jsonify({'state': "ok"})
+    elif cmd == "close":
+        TaskManager.tasks['plate-light-off'].start()
+        time.sleep(0.1)
+        return jsonify({'state': "ok"}) if TaskManager.tasks['plate-light-off'].get_states().states == 'complete' \
+            else jsonify({'state': "failed"})
+    else:
+        # print("检查你的url")
+        return jsonify({"error": "404 [check you url]"})
+
+
+@app.route('/fan')
+def fan():
+    try:
+        hardware_info.all_states[HardwareStates.fan] = int(request.args.get('duty'))
+        logger.debug('---- 风扇开度设置为：%d' % hardware_info.all_states[HardwareStates.fan])
+    except TypeError:
+        hardware_info.all_states[HardwareStates.fan] = 10
+        logger.warning('未设置风扇开度(duty) 将其默认开启最低值10')
+    TaskManager.tasks['fan'].start()
+    time.sleep(0.1)
+    return jsonify({'state': "ok"}) if TaskManager.tasks['fan'].get_states().states == 'complete' \
+        else jsonify({'state': "failed"})
 
 
 if __name__ == '__main__':

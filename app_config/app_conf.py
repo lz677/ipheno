@@ -125,6 +125,9 @@ class TaskResponse:
         with self.lock:
             self.action_states_dict = _action_states_dict
 
+    def get_task_states(self):
+        return self.states
+
     def get_json(self):
         with self.lock:
             return jsonify({
@@ -149,11 +152,12 @@ class Task:
 
     def start(self) -> TaskResponse:
         logger.info('开始执行任务<%s>' % self.name)
-
+        self.states_resp.update_action_states([])
         if not self.t.is_alive():
             self.t = Thread(target=self.__run)
             self.states_resp.set_states(States.RUNNING)
             logger.info('--- 任务<%s>可执行，执行线程启动' % self.name)
+            self.e.clear()
             self.t.start()
         else:
             logger.warning('--- 任务<%s>已经在执行，不可重复执行' % self.name)
@@ -162,6 +166,7 @@ class Task:
 
     def __run(self, **kwargs) -> bool:
         logger.info('--- 检查任务<%s>各动作状态:' % self.name)
+
         for _index, _action in enumerate(self.actions):
             logger.info('------ (%d) %s: %s' % (_index + 1, _action.name, _action.states_resp.states))
             if _action.states_resp.states == States.ERROR:
@@ -176,18 +181,20 @@ class Task:
             self.states_resp.update_action_states([_action.states_resp.get_dict() for _action in self.actions])
             if _action.states_resp.states in (States.ERROR, States.TERMINATE):
                 logger.error('--- 任务<%s>执行中止, 由于动作"%s"故障' % (self.name, _action.name))
-                self.states_resp.set_states(States.ERROR, _error_desc="%s 故障" % _action.name)
                 if _action.states_resp.states == States.ERROR:
+                    self.states_resp.set_states(States.ERROR, _error_desc="%s 故障" % _action.name)
                     self.cancel()
+                    self.e.set()
                 elif _action.states_resp.states == States.TERMINATE:
+                    self.states_resp.set_states(States.TERMINATE, _error_desc="%s 被中止" % _action.name)
                     _action.terminate()
-                self.e.set()
                 return False
-            if _action.states_resp.states == States.RUNNING:
-                logger.warning('--- 任务<%s>执行中, 动作"%s"仍在执行' % (self.name, _action.name))
-                self.states_resp.set_states(States.RUNNING, _error_desc="%s 正在执行" % _action.name)
+            # elif _action.states_resp.states == States.RUNNING:
+            #     logger.warning('--- 任务<%s>执行中, 动作"%s"仍在执行' % (self.name, _action.name))
+            #     self.states_resp.set_states(States.RUNNING, _error_desc="%s 正在执行" % _action.name)
+            #     self.e.set()
+            else:
                 self.e.set()
-            # self.e.set()
         # time.sleep(0.1)
         # print(self.t.is_alive())
         # if self.t.is_alive():

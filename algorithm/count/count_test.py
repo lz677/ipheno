@@ -23,9 +23,11 @@ import json
 logging.basicConfig(level=logging.DEBUG)
 start = time.time()
 # read image
-path = '/home/pi/Documents/ipheno/algorithm/source/count.jpg'
+path = '/home/pi/Documents/ipheno/static/count.jpg'
 # input_img = cv2.imread(os.path.join(dlcount.config.IMG_PATH, 'example1.jpg'))
 input_img = cv2.imread(path)
+input_img = input_img.transpose((1, 0, 2))[:, ::-1, :]
+input_img = input_img[600:-300, 300:-550, :]
 input_img = input_img[..., [2, 1, 0]]  # BGR -> RGB
 
 # inference
@@ -37,7 +39,8 @@ result, num = dlcount.merge_count(input_img, output_img[..., -1])
 logging.info(f'{num} particles have been found,\n{time.time() - start} seconds have been taken.')
 # visualization
 # result = cv2.imencode('.png', result)
-cv2.imwrite('/home/pi/Documents/ipheno/algorithm/results/count.png', result)
+result = cv2.rotate(result, cv2.ROTATE_90_COUNTERCLOCKWISE)
+cv2.imwrite('/home/pi/Documents/ipheno/static/count_result.png', result)
 
 # num 结果存为json
 result_path = '/home/pi/Documents/ipheno/algorithm/results/count_result.json'

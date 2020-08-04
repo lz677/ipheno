@@ -14,21 +14,28 @@ import cv2
 import numpy as np
 import time
 import base64
+import logging
 
-cv2.CAP_PROP_EXPOSURE
+
 class CaptureWebCam:
     def __init__(self):
         super().__init__()
         self.cap = cv2.VideoCapture()
         self.will_quit = False
         self.save_img = False
+        # self.cap = cv2.VideoCapture(0)
+
         self.img_stream = "NONE"
         _, self.blackJpeg = cv2.imencode('.jpg', np.zeros(shape=(480, 720), dtype=np.uint8))
 
         self.should_stream_stop = False
 
-    def open(self, _id=0):
+    def open(self, _id='/dev/video0'):
         self.cap.open(_id)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2880)
+        self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, 0.001)
 
     def is_opened(self) -> bool:
         return self.cap.isOpened()
@@ -70,9 +77,13 @@ class CaptureWebCam:
             time.sleep(0.5)
 
     def get_img(self):
-        if self.cap.isOpened() and not self.should_stream_stop:
-            ret, frame = self.read()
-            return frame
+        if self.cap.isOpened():
+            for i in range(5):
+                ret, frame = self.read()
+                if i == 4:
+                    return frame
+            # logging.warning('get get_img')
+
         else:
             time.sleep(0.5)
 

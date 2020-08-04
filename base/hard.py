@@ -58,7 +58,7 @@ class Hardware:
         # hardware status
         self.all_states = {
             HardwareStates.camera: '未连接',  # 相机
-            HardwareStates.balance: '- 6.77',  # 电子秤
+            HardwareStates.balance: '- 6.77 g',  # 电子秤
             HardwareStates.printer: '未连接',  # 打印机
             HardwareStates.light: False,  # 灯
             HardwareStates.light_plate: False,  # 冷光片

@@ -189,18 +189,22 @@ class MotorAction(object):
         self.motor.set_direction(is_goto_begin)
         # self.motor.set_pwm_frequency(frequency)
         begin_time = time.time()
+        end_flag = False
         if (is_goto_begin and not self.begin_switch.get_switch_status()) or (
                 not is_goto_begin and not self.end_switch.get_switch_status()):
             self.motor.set_duty(duty)
+            end_flag = False
             while True:
                 if gl['gl_motor_stop']:
                     logging.debug('gl_motor_stop')
                     break
                 elif self.begin_switch.get_switch_status() and is_goto_begin:
                     logging.debug('self.begin_switch.get_switch_status()')
+
                     break
                 elif self.end_switch.get_switch_status() and not is_goto_begin:
                     logging.debug('end_switch.get_switch_status()')
+                    end_flag = True
                     break
                 elif time.time() - begin_time > 30:
                     logging.debug('time30')
@@ -208,8 +212,16 @@ class MotorAction(object):
                 time.sleep(0.001)
         self.motor.set_able_status(False)
         self.motor.pwm.ChangeDutyCycle(0)
-        if self.begin_switch.get_switch_status() or self.end_switch.get_switch_status():
-            return True
+        # logging.debug(self.begin_switch.get_switch_status())
+        # logging.debug(self.end_switch.get_switch_status())
+        # logging.debug(GPIO.input(7))
+        # logging.debug(GPIO.input(11))
+        for i in range(50):
+            if self.begin_switch.get_switch_status() or self.end_switch.get_switch_status() or end_flag:
+                logging.debug('行程开关触发')
+                # end_flag = False
+                # end_flag = False
+                return True
         return False
 
     # 初始化到初始位置

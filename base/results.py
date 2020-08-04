@@ -18,7 +18,7 @@ class Results:
         self.img_parameters = {
             '穗长': 'NONE',
             '一次支梗数': 'NONE',
-            '总粒数': '100',
+            '总粒数': 'NONE',
             '千粒重': 'NONE',
             '节间长度最大值': 'NONE',
             '节间长度最小值': 'NONE',
@@ -48,9 +48,9 @@ class Results:
             '粒长宽比标准差': 'NONE',
             '粒长宽比极差': 'NONE',
             '粒长宽比中位数': 'NONE',
-            '实粒数': '96',
+            '实粒数': 'NONE',
             '瘪粒数': 'NONE',
-            '结实率': '96%',
+            '结实率': 'NONE',
             '实粒质量': 'NONE',
             '颜色等级': 'NONE',
             '茎叶夹角': 'NONE',
@@ -69,8 +69,11 @@ class Results:
             '侧面面积': 'NONE',
         }
         self.img_info = {
-            'imageName': 'NONE',
-            'image': 'NONE',
+            '散谷粒原图': 'NONE',
+            '散谷粒分析结果图': 'NONE',
+            '穗上谷粒分析原图': 'NONE',
+            '穗上谷粒分析结果图': 'NONE',
+            '穗形分析图': 'NONE'
             # 'update': False
         }
 
