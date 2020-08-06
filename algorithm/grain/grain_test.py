@@ -101,9 +101,10 @@ def process(img):
 
 
 start = time.time()
-source_path = '/home/pi/Documents/ipheno/static/grain.png'
-# source_path = 'D:\\Project\\PythonProjects\\ipheno\\algorithm\\source\\grain.png'
-path = '/home/pi/Documents/ipheno/static/grain_result.png'
+# source_path = '/home/pi/Documents/ipheno/static/grain.png'
+source_path = 'D:\\Project\\PythonProjects\\ipheno\\static\\grain.png'
+# path = '/home/pi/Documents/ipheno/static/grain_result.png'
+path = 'D:\\Project\\PythonProjects\\ipheno\\static\\grain_result.png'
 result_path = '/home/pi/Documents/ipheno/algorithm/results/grain_result.json'
 img = cv.imread(source_path)  # 读入图片
 h, w, s = img.shape
@@ -185,6 +186,7 @@ else:
         '分蘖数': 'NONE',
         '侧面面积': 'NONE',
     }
+    print(para_results)
     try:
         with open(result_path, 'w', encoding='UTF-8') as j_f:
             j_f.write(json.dumps(para_results))
